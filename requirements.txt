@@ -1,0 +1,33 @@
+# E1 Fusion Project Requirements
+#
+# Core dependencies for pear defect detection fusion project
+
+# Deep learning and computer vision
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# YOLO detection
+ultralytics>=8.0.0
+
+# Data processing
+pyyaml>=6.0
+scikit-image>=0.21.0
+scipy>=1.10.0
+
+# Progress and utilities
+tqdm>=4.65.0
+
+# Testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Note: For Project A (Image Segmentation), use its own environment:
+#   conda activate pear-topo
+#
+# For YOLO training and E1 inference, you can create a unified environment:
+#   conda create -n pear-fusion python=3.10
+#   conda activate pear-fusion
+#   pip install -r requirements.txt

@@ -1,0 +1,182 @@
+# Fusion Configuration for Pear Defect Detection
+
+# ============================================================================
+# Project Paths
+# ============================================================================
+project_a_root: /Users/renxd/code/Image Segmentation
+project_b_root: /Users/renxd/code/yolo26-pear
+
+# Dataset configuration
+dataset:
+  root: /home/robot/yolo/datasets/PearSurfaceDefects
+  data_yaml: /home/robot/yolo/datasets/PearSurfaceDefects/li_data.yaml
+  splits:
+    - train
+    - val
+    - test
+
+# ============================================================================
+# Priors Configuration (from Project A)
+# ============================================================================
+priors:
+  # Directory containing likelihood.npy, topology_mask.npy, metadata.json
+  root_dir: outputs/priors
+
+  # Whether to use cached priors or regenerate
+  use_cache: true
+
+  # Project A inference settings (for regeneration)
+  project_a:
+    config: configs/pear_topology_4090.yaml
+    seg_ckpt: outputs/checkpoints/unet_best.pt
+    uq_ckpt: outputs/checkpoints/uq_best.pt
+    inference_max_side: 1024  # Should match original to avoid resizing
+
+# ============================================================================
+# YOLO Configuration (from Project B)
+# ============================================================================
+yolo:
+  # Model checkpoint
+  model_path: /Users/renxd/code/yolo26-pear/best.pt
+
+  # Inference settings
+  imgsz: 640
+  conf: 0.25  # Confidence threshold
+  iou: 0.45   # NMS IoU threshold
+  device: '0'  # CUDA device
+
+  # Classes of interest (bruise, twig, rot)
+  classes: [1, 2, 3]  # Exclude class 0 (pear/background)
+
+# ============================================================================
+# ROI Proposal Configuration
+# ============================================================================
+roi:
+  # Enable ROI-based detection
+  enabled: true
+
+  # Connected component extraction from topology_mask
+  min_area: 100  # Minimum area (pixels) for a valid ROI
+  max_area: 50000  # Maximum area (pixels)
+
+  # ROI expansion strategy
+  expansion:
+    mode: percentage  # 'percentage' or 'fixed_pixels'
+    value: 0.2  # 20% expansion (or N pixels if mode=fixed_pixels)
+
+  # ROI detection settings
+  detection:
+    imgsz: 640  # Can be higher than global YOLO imgsz for finer detection
+    conf: 0.20  # Lower confidence threshold for ROI regions
+    iou: 0.45
+
+  # Merge strategy
+  merge:
+    # Priority when overlapping: 'roi' or 'global'
+    priority: roi
+    # IoU threshold for considering detections as duplicates
+    nms_iou: 0.5
+
+# ============================================================================
+# Score Reweighting Configuration
+# ============================================================================
+score_reweight:
+  # Enable score reweighting
+  enabled: true
+
+  # Reweighting formula: new_score = original_score * (alpha + beta * likelihood_score)
+  alpha: 0.5  # Base weight
+  beta: 0.5   # Likelihood weight
+
+  # Likelihood aggregation method within bounding box
+  aggregation: mean  # Options: 'mean', 'max', 'weighted_mean'
+
+  # Optional: use uncertainty as discount factor
+  use_uncertainty: false
+  uncertainty_discount: 0.1
+
+# ============================================================================
+# Evaluation Configuration
+# ============================================================================
+evaluation:
+  # Metrics to compute
+  metrics:
+    - mAP50
+    - mAP50-95
+    - precision
+    - recall
+    - f1
+
+  # Per-class analysis
+  per_class: true
+
+  # Confidence thresholds to sweep
+  conf_thresholds: [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+
+  # Save predictions for visualization
+  save_predictions: true
+  save_dir: outputs/detections
+
+# ============================================================================
+# Ablation Study Configuration
+# ============================================================================
+ablation:
+  # Experiment groups
+  experiments:
+    - name: baseline
+      roi_enabled: false
+      score_reweight_enabled: false
+
+    - name: roi_only
+      roi_enabled: true
+      score_reweight_enabled: false
+
+    - name: reweight_only
+      roi_enabled: false
+      score_reweight_enabled: true
+
+    - name: both
+      roi_enabled: true
+      score_reweight_enabled: true
+
+  # Output directory for ablation results
+  output_dir: outputs/ablation_results
+
+# ============================================================================
+# Visualization Configuration
+# ============================================================================
+visualization:
+  # Enable visualization
+  enabled: true
+
+  # What to visualize
+  show_roi_boxes: true
+  show_likelihood_overlay: true
+  show_topology_mask: true
+  show_detections: true
+
+  # Color scheme
+  colors:
+    roi: [255, 0, 0]      # Red for ROI boxes
+    detection: [0, 255, 0]  # Green for detections
+    mask: [0, 0, 255]     # Blue for topology mask
+
+  # Save directory
+  save_dir: outputs/visualizations
+
+# ============================================================================
+# Runtime Configuration
+# ============================================================================
+runtime:
+  # Number of workers for data loading
+  num_workers: 8
+
+  # Batch size (if applicable)
+  batch_size: 1  # Typically 1 for inference with ROI
+
+  # Logging
+  log_level: INFO
+  log_file: outputs/fusion.log
+
+  # Random seed for reproducibility
+  seed: 42

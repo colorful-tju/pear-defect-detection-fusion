@@ -1,0 +1,154 @@
+# E1 Configuration: Global Detector + Prior-Guided Local Detector
+#
+# This configuration defines the E1 experiment setup with two-stage detection:
+# 1. Global detector: Full-image YOLO detection (E0 baseline)
+# 2. Local detector: ROI-based YOLO detection on topology mask patches
+# 3. Fusion: Intelligent merging of detections
+
+experiment_name: e1_global_local
+
+# ============================================================================
+# Project Paths
+# ============================================================================
+project_a_root: /Users/renxd/code/Image Segmentation
+project_a_config: pear_topology.yaml  # Use auto device selection (cuda/mps/cpu)
+project_b_root: /Users/renxd/code/yolo26-pear
+fusion_root: /Users/renxd/code/pear-defect-detection-fusion
+
+# ============================================================================
+# Dataset Configuration
+# ============================================================================
+dataset:
+  root: /home/robot/yolo/datasets/PearSurfaceDefects
+  data_yaml: /home/robot/yolo/datasets/PearSurfaceDefects/li_data.yaml
+
+# ============================================================================
+# Priors Configuration (from Project A)
+# ============================================================================
+priors:
+  root_dir: outputs/priors
+  use_cache: true
+
+# ============================================================================
+# Model Paths
+# ============================================================================
+models:
+  # Global detector: E0 baseline model (full-image detection)
+  global_detector: /Users/renxd/code/yolo26-pear/best.pt
+
+  # Local detector: NEW model trained on ROI patches
+  local_detector: outputs/e1_models/local_detector/weights/best.pt
+
+# ============================================================================
+# ROI Generation Configuration
+# ============================================================================
+roi:
+  # ROI extraction parameters
+  min_area: 100          # Minimum ROI area (pixels)
+  max_area: 50000        # Maximum ROI area (pixels)
+  expansion_ratio: 0.2   # 20% expansion around ROI
+
+  # Morphological post-processing
+  morphology:
+    kernel_size: 5       # Morphological kernel size
+    operation: closing   # closing or opening
+
+# ============================================================================
+# ROI Dataset Construction
+# ============================================================================
+roi_dataset:
+  output_dir: outputs/roi_dataset
+
+  # Label assignment criteria
+  label_assignment:
+    iou_threshold: 0.3        # IoU threshold for positive ROI
+    overlap_ratio: 0.5        # Overlap ratio threshold
+
+  # Hard negative sampling
+  hard_negative:
+    enabled: true
+    likelihood_threshold: 0.5  # Likelihood threshold for hard negatives
+    max_ratio: 0.3             # Maximum ratio of hard negatives
+
+# ============================================================================
+# Training Configuration
+# ============================================================================
+training:
+  output_dir: outputs/e1_models
+
+  # Training parameters
+  epochs: 100
+  imgsz: 640
+  batch: 32
+  device: '0'           # GPU device
+
+  # Pretrained weights
+  pretrained: yolo26s.pt
+
+# ============================================================================
+# Inference Configuration
+# ============================================================================
+inference:
+  # Global detector inference
+  global:
+    conf: 0.25          # Confidence threshold
+    iou: 0.45           # NMS IoU threshold
+
+  # Local detector inference (ROI patches)
+  local:
+    conf: 0.20          # Lower threshold for ROI regions
+    iou: 0.45           # NMS IoU threshold
+
+# ============================================================================
+# Fusion Configuration
+# ============================================================================
+fusion:
+  method: priority_nms        # priority_nms or confidence_nms
+  iou_threshold: 0.5          # IoU threshold for merging
+  priority: local             # local, global, or confidence
+
+  # Optional: Score reweighting using likelihood
+  score_reweight:
+    enabled: false            # Enable for E1+reweight variant
+    alpha: 0.5
+    beta: 0.5
+    aggregation: mean         # mean, max, or weighted_mean
+
+# ============================================================================
+# Evaluation Configuration
+# ============================================================================
+evaluation:
+  metrics:
+    - mAP50
+    - mAP50-95
+    - precision
+    - recall
+    - f1
+
+  per_class: true
+  save_predictions: true
+  save_dir: outputs/e1_evaluation
+
+# ============================================================================
+# Visualization Configuration
+# ============================================================================
+visualization:
+  enabled: true
+  show_roi_boxes: true
+  show_detections: true
+
+  colors:
+    global: [0, 255, 0]       # Green
+    local: [255, 0, 0]        # Blue
+    merged: [0, 255, 255]     # Yellow
+
+  save_dir: outputs/e1_visualizations
+
+# ============================================================================
+# Runtime Configuration
+# ============================================================================
+runtime:
+  num_workers: 8
+  log_level: INFO
+  log_file: outputs/e1.log
+  seed: 42
