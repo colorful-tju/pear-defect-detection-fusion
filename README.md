@@ -39,17 +39,26 @@
 - **CUDA**: 11.8+
 - **Python**: 3.10+
 
-### 依赖项目
+### 部署方式
 
-本项目依赖两个独立项目，需要先准备好：
+本项目支持两种部署方式：
 
-1. **Image Segmentation** - 拓扑感知分割模型
-   - 仓库：需要先训练好分割模型和不确定性模型
-   - 输出：`unet_best.pt`, `uq_best.pt`
+#### 方式 1：独立部署（推荐）⭐
 
-2. **YOLO26-pear** - YOLO26 baseline 模型
-   - 仓库：需要先训练好 baseline 模型
-   - 输出：`best.pt`
+**无需外部项目代码**，只需要准备：
+1. **Priors 数据**（预先生成的 likelihood.npy, topology_mask.npy）
+2. **预训练模型**（YOLO baseline 模型 .pt 文件）
+3. **数据集**（YOLO 格式）
+
+详见：[独立部署指南](STANDALONE_DEPLOYMENT.md)
+
+#### 方式 2：完整部署
+
+需要依赖两个外部项目：
+1. **Image Segmentation** - 用于生成 priors
+2. **YOLO26-pear** - 提供 baseline 模型
+
+详见：[服务器部署指南](SERVER_DEPLOYMENT.md)
 
 ### 环境安装
 
@@ -82,51 +91,70 @@ pip install -r requirements.txt
 
 ## 🚀 快速开始
 
-### 1. 配置路径
+### 独立部署（推荐）
 
-编辑 `configs/e1_config.yaml`，设置正确的路径：
+如果你已经有 priors 数据和模型文件：
+
+#### 1. 克隆仓库
+
+```bash
+git clone git@github.com:colorful-tju/pear-defect-detection-fusion.git
+cd pear-defect-detection-fusion
+```
+
+#### 2. 创建环境
+
+```bash
+conda create -n pear-fusion python=3.10
+conda activate pear-fusion
+pip install -r requirements.txt
+```
+
+#### 3. 准备文件
+
+```bash
+# 准备 priors 数据（从其他机器复制或生成）
+cp -r /path/to/priors outputs/
+
+# 准备模型文件
+mkdir -p models
+cp /path/to/baseline_model.pt models/global_detector.pt
+```
+
+#### 4. 配置路径
+
+编辑 `configs/e1_config_standalone.yaml`：
 
 ```yaml
-# 项目路径
-project_a_root: /path/to/Image_Segmentation
-project_b_root: /path/to/yolo26-pear
-
-# 数据集路径
 dataset:
   root: /home/robot/yolo/datasets/PearSurfaceDefects
   data_yaml: /home/robot/yolo/datasets/PearSurfaceDefects/li_data.yaml
 
-# 模型路径
+priors:
+  root_dir: outputs/priors
+
 models:
-  global_detector: /path/to/yolo26-pear/best.pt
-  local_detector: outputs/e1_models/local_detector/weights/best.pt
+  global_detector: models/global_detector.pt
 ```
 
-### 2. 一键训练（推荐）
+#### 5. 运行训练
 
 ```bash
-# 激活环境
-conda activate pear-fusion  # 或 yolo
-
-# 运行完整训练流程
-python tools/train_e1_pipeline.py --config configs/e1_config.yaml
+python tools/train_e1_standalone.py --config configs/e1_config_standalone.yaml
 ```
 
-这会自动完成：
-1. ✅ 生成 priors（调用 Project A）
-2. ✅ 构建 ROI 训练数据集
-3. ✅ 训练局部检测器
-
-### 3. 推理
+#### 6. 运行推理
 
 ```bash
-# 在测试集上运行 E1 推理
 python scripts/infer_e1_fusion.py \
-  --config configs/e1_config.yaml \
-  --source /home/robot/yolo/datasets/PearSurfaceDefects/images/test \
-  --output outputs/e1_detections \
+  --config configs/e1_config_standalone.yaml \
+  --source test_images/ \
   --visualize
 ```
+
+### 完整部署
+
+如果你需要从头生成 priors，参考 [服务器部署指南](SERVER_DEPLOYMENT.md)。
 
 ## 📖 详细使用指南
 
