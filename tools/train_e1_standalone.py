@@ -88,19 +88,28 @@ def train_local_detector(config: dict):
     print(f"  - Batch size: {training_config['batch']}")
     print(f"  - Device: {training_config['device']}")
 
+    # Wandb configuration (if provided)
+    if 'project' in training_config:
+        print(f"  - Wandb project: {training_config['project']}")
+        if 'name' in training_config:
+            print(f"  - Wandb name: {training_config['name']}")
+
     # Train model
-    results = model.train(
-        data=str(data_yaml),
-        epochs=training_config['epochs'],
-        imgsz=training_config['imgsz'],
-        batch=training_config['batch'],
-        device=training_config['device'],
-        project=training_config['output_dir'],
-        name='local_detector',
-        amp=training_config.get('amp', True),
-        cache=training_config.get('cache', True),
-        workers=training_config.get('workers', 8)
-    )
+    train_args = {
+        'data': str(data_yaml),
+        'epochs': training_config['epochs'],
+        'imgsz': training_config['imgsz'],
+        'batch': training_config['batch'],
+        'device': training_config['device'],
+        'project': training_config.get('project', training_config['output_dir']),
+        'name': training_config.get('name', 'local_detector'),
+        'amp': training_config.get('amp', True),
+        'cache': training_config.get('cache', True),
+        'workers': training_config.get('workers', 8),
+        'exist_ok': training_config.get('exist_ok', False)
+    }
+
+    results = model.train(**train_args)
 
     print("\nLocal detector training completed!")
     print(f"Best checkpoint: {training_config['output_dir']}/local_detector/weights/best.pt")

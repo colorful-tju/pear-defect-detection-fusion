@@ -104,6 +104,12 @@ training:
   amp: true             # Automatic Mixed Precision
   cache: true           # Cache images to RAM
 
+  # Wandb logging (optional)
+  # Uncomment to enable Wandb tracking
+  # project: pear-e1-fusion        # Wandb project name
+  # name: local_detector_v1        # Experiment name
+  # exist_ok: false                # Allow overwriting existing runs
+
 # ============================================================================
 # Inference Configuration
 # ============================================================================
