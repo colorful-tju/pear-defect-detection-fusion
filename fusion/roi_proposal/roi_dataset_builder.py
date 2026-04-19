@@ -388,12 +388,21 @@ class ROIDatasetBuilder:
             json.dump(mapping, f, indent=2)
 
         # Create data.yaml for YOLO
+        # Ensure nc matches the actual number of classes in names
+        names_dict = data_config.get('names', {})
+
+        # If names is a dict, get the actual number of classes
+        if isinstance(names_dict, dict):
+            nc = len(names_dict)
+        else:
+            nc = data_config.get('nc', len(names_dict))
+
         roi_data_yaml = {
             'path': str(output_dir.absolute()),
             'train': 'images/train',
             'val': 'images/val',
-            'nc': data_config.get('nc', 3),
-            'names': data_config.get('names', {})
+            'nc': nc,
+            'names': names_dict
         }
 
         data_yaml_path = output_dir / 'data.yaml'
