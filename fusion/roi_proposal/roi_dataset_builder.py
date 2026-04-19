@@ -372,14 +372,14 @@ class ROIDatasetBuilder:
 
                     stats[split]['total'] += 1
 
-                    # Save mapping
+                    # Save mapping (convert NumPy types to Python native types)
                     mapping[patch_name] = {
                         'original_image': str(image_path),
-                        'roi_coords': roi_coords,
-                        'patch_size': patch_size,
+                        'roi_coords': [int(x) for x in roi_coords],  # Convert to Python int
+                        'patch_size': [int(x) for x in patch_size],  # Convert to Python int
                         'split': split,
-                        'is_positive': is_positive,
-                        'is_hard_negative': is_hard_neg
+                        'is_positive': bool(is_positive),  # Convert to Python bool
+                        'is_hard_negative': bool(is_hard_neg)  # Convert to Python bool
                     }
 
         # Save mapping
